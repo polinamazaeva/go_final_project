@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"go_final_project/db"
@@ -10,14 +11,21 @@ import (
 )
 
 func main() {
-	db.CheckOpenCloseDb()
+	database, err := db.CheckOpenCloseDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer database.Close()
+
 	webDir := "./web"
 
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/api/nextdate", handler.NextDateHandler)
-	http.HandleFunc("/api/task", handler.TaskHandler)
-	err := http.ListenAndServe(":7540", nil)
+	http.HandleFunc("/api/task", handler.MakeTaskHandler(database))
+
+	log.Println("Server starting on :7540")
+	err = http.ListenAndServe(":7540", nil)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Server failed: %v", err)
 	}
 }

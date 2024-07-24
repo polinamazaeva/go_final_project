@@ -12,7 +12,7 @@ import (
 
 var Database *sql.DB
 
-func CheckOpenCloseDb() {
+func CheckOpenCloseDb() (*sql.DB, error) {
 	appPath, err := os.Executable()
 	if err != nil {
 		log.Fatal(err)
@@ -25,28 +25,36 @@ func CheckOpenCloseDb() {
 		install = true
 	}
 
-	Database, err := sql.Open("sqlite", "scheduler.db")
+	Database, err = sql.Open("sqlite", "scheduler.db")
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil, err
 	}
-	defer Database.Close()
 
 	if install {
-		query := `CREATE TABLE IF NOT EXISTS scheduler (
-                id      INTEGER PRIMARY KEY AUTOINCREMENT,go run .
-                date    CHAR(8) NOT NULL DEFAULT "",
-                title   VARCHAR(128) NOT NULL DEFAULT "",
-                comment TEXT NOT NULL DEFAULT "", 
-                repeat VARCHAR(128) NOT NULL DEFAULT "" 
-            );`
+		// SQL-запрос для создания таблицы
+		createTableQuery := `CREATE TABLE IF NOT EXISTS scheduler (
+			id      INTEGER PRIMARY KEY AUTOINCREMENT,
+			date    CHAR(8) NOT NULL DEFAULT "",
+			title   VARCHAR(128) NOT NULL DEFAULT "",
+			comment TEXT NOT NULL DEFAULT "", 
+			repeat  VARCHAR(128) NOT NULL DEFAULT "" 
+		);`
+
+		_, err = Database.Exec(createTableQuery)
+		if err != nil {
+			log.Println("Error creating table", err)
+			return nil, err
+		}
 
 		// SQL-запрос для создания индекса
-		query = `CREATE INDEX IF NOT EXISTS date_indx ON scheduler (date);`
+		createIndexQuery := `CREATE INDEX IF NOT EXISTS date_indx ON scheduler (date);`
 
-		_, err = Database.Exec(query)
+		_, err = Database.Exec(createIndexQuery)
 		if err != nil {
-			log.Println("Error to create db", err)
+			log.Println("Error creating index", err)
+			return nil, err
 		}
 	}
+	return Database, nil
 }

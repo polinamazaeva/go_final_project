@@ -4,20 +4,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"go_final_project/task"
-	"net/http"
 )
-
-var Response []byte
 
 type Id struct {
 	Id int64 `json:"id"`
 }
 
-func AddTask(db *sql.DB, req *http.Request) ([]byte, int, error) {
-
+func AddTask(db *sql.DB, task task.Task) ([]byte, int, error) {
 	var id Id
-	var task task.Task
 
+	// Используем параметризированный запрос для вставки
 	res, err := db.Exec(`INSERT INTO scheduler (date, title, comment, repeat)
 		VALUES (:date, :title, :comment, :repeat)`,
 		sql.Named("date", task.Date),
@@ -25,10 +21,12 @@ func AddTask(db *sql.DB, req *http.Request) ([]byte, int, error) {
 		sql.Named("comment", task.Comment),
 		sql.Named("repeat", task.Repeat),
 	)
+
 	if err != nil {
 		return []byte{}, 500, err
 	}
 
+	// Получение последнего вставленного ID
 	getId, err := res.LastInsertId()
 	if err != nil {
 		return []byte{}, 500, err
@@ -36,6 +34,7 @@ func AddTask(db *sql.DB, req *http.Request) ([]byte, int, error) {
 
 	id.Id = getId
 
+	// Преобразование ID в JSON
 	idResult, err := json.Marshal(id)
 	if err != nil {
 		return []byte{}, 500, err

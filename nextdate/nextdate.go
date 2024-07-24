@@ -15,21 +15,22 @@ func parseTime(s string) (time.Time, error) {
 }
 
 // Функция для вычисления следующей даты в соответствии с правилами повторения
-
 func NextDate(now time.Time, date string, repeat string) (string, error) {
-
 	if repeat == "" {
 		return "", errors.New("null in repeat")
 	}
 
 	// Преобразование входных параметров во время
-	nowTime := now
+	nowTime := now.Truncate(24 * time.Hour) // Убедитесь, что время обрезано до целых суток
 	dateTime, err := parseTime(date)
 	if err != nil {
 		return "", fmt.Errorf("некорректная дата date: %w", err)
 	}
 
 	symbols := strings.Split(repeat, " ")
+	if len(symbols) == 0 {
+		return "", fmt.Errorf("invalid repeat format")
+	}
 	firstsymbol := symbols[0]
 
 	if !strings.ContainsAny(firstsymbol, "dywm") {
@@ -53,7 +54,6 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	default:
 		return "", nil // Другие правила
 	}
-
 }
 
 // nextYearlyDate переносит дату на один год вперед, учитывая високосные годы
@@ -61,7 +61,7 @@ func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 	next := dateTime
 
 	for {
-		if next.After(nowTime) && next.After(dateTime) { // проверяем, чтобы следующая дата была больше now
+		if next.After(nowTime) { // проверяем, чтобы следующая дата была больше now
 			break
 		}
 		next = next.AddDate(1, 0, 0)
