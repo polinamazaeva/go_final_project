@@ -33,16 +33,16 @@ func CheckOpenCloseDb() {
 	defer Database.Close()
 
 	if install {
-		query := `CREATE TABLE IF NOT EXISTS tasks (
+		query := `CREATE TABLE IF NOT EXISTS scheduler (
                 id      INTEGER PRIMARY KEY AUTOINCREMENT,go run .
                 date    CHAR(8) NOT NULL DEFAULT "",
                 title   VARCHAR(128) NOT NULL DEFAULT "",
                 comment TEXT NOT NULL DEFAULT "", 
-                repeat TEXT NOT NULL DEFAULT "", 
+                repeat VARCHAR(128) NOT NULL DEFAULT "" 
             );`
 
 		// SQL-запрос для создания индекса
-		query = `CREATE INDEX IF NOT EXISTS date_indx ON tasks (date);`
+		query = `CREATE INDEX IF NOT EXISTS date_indx ON scheduler (date);`
 
 		_, err = Database.Exec(query)
 		if err != nil {
