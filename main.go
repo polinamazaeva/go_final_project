@@ -22,6 +22,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/api/nextdate", handler.NextDateHandler)
 	http.HandleFunc("/api/task", handler.MakeTaskHandler(database))
+	http.HandleFunc("/api/tasks", handler.MakeTaskHandler(database))
 
 	log.Println("Server starting on :7540")
 	err = http.ListenAndServe(":7540", nil)

@@ -21,7 +21,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	}
 
 	// Преобразование входных параметров во время
-	nowTime := now.Truncate(24 * time.Hour) // Убедитесь, что время обрезано до целых суток
+	nowTime := now.Truncate(24 * time.Hour)
 	dateTime, err := parseTime(date)
 	if err != nil {
 		return "", fmt.Errorf("некорректная дата date: %w", err)
@@ -61,7 +61,7 @@ func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 	next := dateTime
 
 	for {
-		if next.After(nowTime) { // проверяем, чтобы следующая дата была больше now
+		if next.Format("20060102") > nowTime.Format("20060102") {
 			break
 		}
 		next = next.AddDate(1, 0, 0)
@@ -83,7 +83,7 @@ func nextDayRepeat(dateTime time.Time, nowTime time.Time, daysInterval string) (
 	nextDate := dateTime.AddDate(0, 0, daysIntervalInt)
 
 	for {
-		if nextDate.After(nowTime) {
+		if nextDate.Format("20060102") > nowTime.Format("20060102") {
 			break
 		}
 		nextDate = nextDate.AddDate(0, 0, daysIntervalInt)
