@@ -6,155 +6,134 @@ import (
 	"go_final_project/nextdate"
 	"go_final_project/task"
 	"go_final_project/taskactions"
+	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
 
-func MakeTaskHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		var t task.Task
-		var err error
-		param := req.URL.Query().Get("id")
-		var response []byte
-		var responseStatus int
+type ResponseForPostTask struct {
+	Id int64 `json:"id"`
+}
 
-		switch req.Method {
+var ResponseStatus int
 
-		case http.MethodPost:
-			decoder := json.NewDecoder(req.Body)
-			err = decoder.Decode(&t)
-			if err != nil {
-				http.Error(w, `{"error":"Ошибка десериализации JSON"}`, http.StatusBadRequest)
-				return
-			}
+// TaskHandler возвращает обработчик для создания и обновления задач
+func TaskHandler(w http.ResponseWriter, req *http.Request) {
+	param := req.URL.Query().Get("id")
 
-			if t.Title == "" {
-				http.Error(w, `{"error":"Не указан заголовок задачи"}`, http.StatusBadRequest)
-				return
-			}
+	db, err := sql.Open("sqlite3", "./scheduler.db")
+	if err != nil {
+		http.Error(w, "error opening database: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
 
-			layout := "20060102"
-			now := time.Now().Truncate(24 * time.Hour)
+	var response []byte
 
-			var taskDate time.Time
-			if t.Date == "today" || t.Date == "" {
-				taskDate = now
-			} else {
-				taskDate, err = time.Parse(layout, t.Date)
-				if err != nil {
-					http.Error(w, `{"error":"Дата представлена в неверном формате"}`, http.StatusBadRequest)
-					return
-				}
-			}
-
-			taskDate = taskDate.Truncate(24 * time.Hour)
-
-			if taskDate.Format("20060102") < now.Format("20060102") {
-				if t.Repeat == "" {
-					taskDate = now
-				} else {
-					nextDate, err := nextdate.NextDate(now, taskDate.Format(layout), t.Repeat)
-					if err != nil {
-						http.Error(w, `{"error":"Неправильное правило повторения"}`, http.StatusBadRequest)
-						return
-					}
-					taskDate, err = time.Parse(layout, nextDate)
-					if err != nil {
-						http.Error(w, `{"error":"Неправильный формат даты"}`, http.StatusBadRequest)
-						return
-					}
-				}
-			}
-
-			t.Date = taskDate.Format(layout)
-
-			response, responseStatus, err = taskactions.AddTask(db, t)
-			if err != nil {
-				http.Error(w, err.Error(), responseStatus)
-				return
-			}
-
-		case http.MethodGet:
-			limitParam := req.URL.Query().Get("limit")
-			limit, err := strconv.Atoi(limitParam)
-			if err != nil || limit < 10 || limit > 50 {
-				limit = 50 // Default limit
-			}
-
-			if param != "" {
-				response, responseStatus, err = taskactions.GetTaskByID(db, param)
-			} else {
-				response, responseStatus, err = taskactions.GetTasks(db, limit)
-			}
-
-			if err != nil {
-				http.Error(w, err.Error(), responseStatus)
-				return
-			}
-
-		case http.MethodPut:
-			decoder := json.NewDecoder(req.Body)
-			err = decoder.Decode(&t)
-			if err != nil {
-				http.Error(w, `{"error":"Ошибка десериализации JSON"}`, http.StatusBadRequest)
-				return
-			}
-
-			if t.Id == "" {
-				http.Error(w, `{"error":"Не указан идентификатор задачи"}`, http.StatusBadRequest)
-				return
-			}
-
-			if t.Title == "" {
-				http.Error(w, `{"error":"Не указан заголовок задачи"}`, http.StatusBadRequest)
-				return
-			}
-
-			layout := "20060102"
-			now := time.Now().Truncate(24 * time.Hour)
-
-			var taskDate time.Time
-			if t.Date == "today" || t.Date == "" {
-				taskDate = now
-			} else {
-				taskDate, err = time.Parse(layout, t.Date)
-				if err != nil {
-					http.Error(w, `{"error":"Дата представлена в неверном формате"}`, http.StatusBadRequest)
-					return
-				}
-			}
-
-			taskDate = taskDate.Truncate(24 * time.Hour)
-
-			if taskDate.Format("20060102") < now.Format("20060102") {
-				if t.Repeat == "" {
-					taskDate = now
-				} else {
-					nextDate, err := nextdate.NextDate(now, taskDate.Format(layout), t.Repeat)
-					if err != nil {
-						http.Error(w, `{"error":"Неправильное правило повторения"}`, http.StatusBadRequest)
-						return
-					}
-					taskDate, err = time.Parse(layout, nextDate)
-					if err != nil {
-						http.Error(w, `{"error":"Неправильный формат даты"}`, http.StatusBadRequest)
-						return
-					}
-				}
-			}
-
-			t.Date = taskDate.Format(layout)
-
-			response, responseStatus, err = taskactions.UpdateTask(db, t)
-			if err != nil {
-				http.Error(w, err.Error(), responseStatus)
-				return
-			}
+	switch req.Method {
+	case http.MethodGet:
+		if param == "" {
+			http.Error(w, `{"error":"incorrect id"}`, http.StatusBadRequest)
+			return
+		}
+		response, ResponseStatus, err = taskactions.TaskID(db, param)
+		if err != nil {
+			http.Error(w, err.Error(), ResponseStatus)
+			return
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+	case http.MethodPost:
+		response, ResponseStatus, err = taskactions.AddTask(db, req)
+		if err != nil {
+			http.Error(w, err.Error(), ResponseStatus)
+			return
+		}
+	case http.MethodPut:
+		response, ResponseStatus, err = taskactions.UptadeTaskID(db, req)
+		if err != nil {
+			http.Error(w, err.Error(), ResponseStatus)
+			return
+		}
+	case http.MethodDelete:
+		ResponseStatus, err = taskactions.DeleteTask(db, param)
+		if err != nil {
+			http.Error(w, err.Error(), ResponseStatus)
+			return
+		}
+		response = []byte(`{}`)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(response)
+}
+
+// Обработчик для завершения задачи
+func TaskDoneHandler(w http.ResponseWriter, req *http.Request) {
+	id := req.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, `{"error":"missing id parameter"}`, http.StatusBadRequest)
+		return
+	}
+
+	db, err := sql.Open("sqlite3", "./scheduler.db")
+	if err != nil {
+		logError(err)
+		http.Error(w, `{"error":"error opening database: `+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var taskID task.Task
+	row := db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?", id)
+	err = row.Scan(&taskID.Id, &taskID.Date, &taskID.Title, &taskID.Comment, &taskID.Repeat)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"task not found"}`, http.StatusNotFound)
+		} else {
+			http.Error(w, `{"error":"error scanning task: `+err.Error()+`"}`, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if taskID.Repeat == "" {
+		_, err := db.Exec("DELETE FROM scheduler WHERE id = ?", id)
+		if err != nil {
+			logError(err)
+			http.Error(w, `{"error":"error deleting task: `+err.Error()+`"}`, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		now := time.Now()
+		nextDate, err := nextdate.NextDate(now, taskID.Date, taskID.Repeat)
+		if err != nil {
+			http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+			return
+		}
+
+		_, err = db.Exec("UPDATE scheduler SET date = ? WHERE id = ?", nextDate, taskID.Id)
+		if err != nil {
+			http.Error(w, `{"error":"error updating task: `+err.Error()+`"}`, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	response := map[string]string{
+		"status": "success",
+	}
+	responseData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, `{"error":"error marshalling response: `+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseData)
+}
+
+func logError(err error) {
+	if err != nil {
+		log.Printf("Error: %v", err)
 	}
 }

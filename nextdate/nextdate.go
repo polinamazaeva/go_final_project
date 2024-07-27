@@ -56,7 +56,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	}
 }
 
-// nextYearlyDate переносит дату на один год вперед, учитывая високосные годы
+// nextYearlyDate переносит дату на один год вперед
 func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 	next := dateTime
 

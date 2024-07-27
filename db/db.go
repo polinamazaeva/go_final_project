@@ -12,6 +12,7 @@ import (
 
 var Database *sql.DB
 
+// CheckOpenCloseDb открывает базу данных и создает таблицы, если их нет
 func CheckOpenCloseDb() (*sql.DB, error) {
 	appPath, err := os.Executable()
 	if err != nil {
@@ -25,20 +26,19 @@ func CheckOpenCloseDb() (*sql.DB, error) {
 		install = true
 	}
 
-	Database, err = sql.Open("sqlite", "scheduler.db")
+	Database, err = sql.Open("sqlite", dbFile)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
 	if install {
-		// SQL-запрос для создания таблицы
 		createTableQuery := `CREATE TABLE IF NOT EXISTS scheduler (
 			id      INTEGER PRIMARY KEY AUTOINCREMENT,
 			date    CHAR(8) NOT NULL DEFAULT "",
 			title   VARCHAR(128) NOT NULL DEFAULT "",
-			comment TEXT NOT NULL DEFAULT "", 
-			repeat  VARCHAR(128) NOT NULL DEFAULT "" 
+			comment TEXT NOT NULL DEFAULT "",
+			repeat  VARCHAR(128) NOT NULL DEFAULT ""
 		);`
 
 		_, err = Database.Exec(createTableQuery)
@@ -47,9 +47,7 @@ func CheckOpenCloseDb() (*sql.DB, error) {
 			return nil, err
 		}
 
-		// SQL-запрос для создания индекса
 		createIndexQuery := `CREATE INDEX IF NOT EXISTS date_indx ON scheduler (date);`
-
 		_, err = Database.Exec(createIndexQuery)
 		if err != nil {
 			log.Println("Error creating index", err)
