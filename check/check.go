@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"go_final_project/nextdate"
-	"go_final_project/task"
-
 	"net/http"
 	"time"
+
+	"go_final_project/nextdate"
+	"go_final_project/task"
 )
 
-// CheckTask проверяет и обрабатывает задачу из HTTP-запроса.
 func Check(req *http.Request) (task.Task, int, error) {
 	var task task.Task
 	var buf bytes.Buffer
@@ -27,10 +26,6 @@ func Check(req *http.Request) (task.Task, int, error) {
 	// Поле title обязательно должно быть указано, иначе возвращаем ошибку.
 	if task.Title == "" {
 		return task, 400, errors.New(`{"error":"task title is not specified"}`)
-	}
-
-	if len(task.Title) < 2 { // Минимальная длина заголовка 2 символа
-		return task, 400, errors.New(`{"error":"task title is too short"}`)
 	}
 
 	now := time.Now()

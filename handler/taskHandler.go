@@ -37,7 +37,6 @@ func TaskHandler(w http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		response, ResponseStatus, err = taskactions.AddTask(db, req)
-		defer db.Close()
 		if err != nil {
 			http.Error(w, err.Error(), ResponseStatus)
 			return

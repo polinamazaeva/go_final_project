@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go_final_project/db"
+	"go_final_project/dbase"
 	"go_final_project/handler"
 	"log"
 	"net/http"
@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	database, err := db.CheckOpenCloseDb()
+	database, err := dbase.CheckOpenCloseDb()
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

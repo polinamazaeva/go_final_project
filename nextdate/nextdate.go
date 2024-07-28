@@ -16,12 +16,9 @@ func parseTime(s string) (time.Time, error) {
 
 // Функция для вычисления следующей даты в соответствии с правилами повторения
 func NextDate(now time.Time, date string, repeat string) (string, error) {
-	if repeat == "" {
-		return "", errors.New("null in repeat")
-	}
 
 	// Преобразование входных параметров во время
-	nowTime := now.Truncate(24 * time.Hour)
+	nowTime := now //Truncate(24 * time.Hour)
 	dateTime, err := parseTime(date)
 	if err != nil {
 		return "", fmt.Errorf("некорректная дата date: %w", err)
@@ -51,8 +48,8 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		secondsymbol := symbols[1]
 		return nextDayRepeat(dateTime, nowTime, secondsymbol)
 
-	default:
-		return "", nil // Другие правила
+	default: // Неподдерживаемые форматы
+		return "", errors.New("unsupported repeat format")
 	}
 }
 
