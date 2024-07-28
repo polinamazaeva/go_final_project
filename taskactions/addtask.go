@@ -7,14 +7,14 @@ import (
 	"net/http"
 )
 
-type Id struct {
+type ResponseId struct {
 	Id int64 `json:"id"`
 }
 
 func AddTask(db *sql.DB, req *http.Request) ([]byte, int, error) {
-	var idresp Id
+	var respid ResponseId
 
-	task, ResponseStatus, err := check.Check(req) // Убедитесь, что check.Check доступен и правильно вызывается
+	task, ResponseStatus, err := check.Check(req)
 	if err != nil {
 		return []byte{}, ResponseStatus, err
 	}
@@ -34,9 +34,9 @@ func AddTask(db *sql.DB, req *http.Request) ([]byte, int, error) {
 		return []byte{}, 500, err
 	}
 
-	idresp.Id = id
+	respid.Id = id
 
-	idResult, err := json.Marshal(idresp)
+	idResult, err := json.Marshal(respid)
 	if err != nil {
 		return []byte{}, 500, err
 	}

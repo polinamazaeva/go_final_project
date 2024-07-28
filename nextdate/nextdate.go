@@ -61,7 +61,7 @@ func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 	next := dateTime
 
 	for {
-		if next.Format("20060102") > nowTime.Format("20060102") {
+		if next.After(nowTime) && next.After(dateTime) {
 			break
 		}
 		next = next.AddDate(1, 0, 0)
@@ -70,6 +70,7 @@ func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 	return next.Format("20060102"), nil
 }
 
+// nextDayRepeat вычисляет следующую дату на основании повторения через указанное количество дней
 func nextDayRepeat(dateTime time.Time, nowTime time.Time, daysInterval string) (string, error) {
 	daysIntervalInt, err := strconv.Atoi(daysInterval)
 	if err != nil {
@@ -83,7 +84,7 @@ func nextDayRepeat(dateTime time.Time, nowTime time.Time, daysInterval string) (
 	nextDate := dateTime.AddDate(0, 0, daysIntervalInt)
 
 	for {
-		if nextDate.Format("20060102") > nowTime.Format("20060102") {
+		if nextDate.After(nowTime) {
 			break
 		}
 		nextDate = nextDate.AddDate(0, 0, daysIntervalInt)

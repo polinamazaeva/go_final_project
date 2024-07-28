@@ -18,41 +18,49 @@ func Check(req *http.Request) (task.Task, int, error) {
 
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		return task, http.StatusInternalServerError, err
+		return task, 500, err
 	}
 
 	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-		return task, http.StatusInternalServerError, err
+		return task, 500, err
+	}
+	// Поле title обязательно должно быть указано, иначе возвращаем ошибку.
+	if task.Title == "" {
+		return task, 400, errors.New(`{"error":"task title is not specified"}`)
 	}
 
-	if task.Title == "" {
-		return task, http.StatusBadRequest, errors.New(`{"error":"task title is not specified"}`)
+	if len(task.Title) < 2 { // Минимальная длина заголовка 2 символа
+		return task, 400, errors.New(`{"error":"task title is too short"}`)
 	}
 
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 
+	// Если дата не указана, полю date присваивается сегодняшняя дата.
 	if task.Date == "" {
 		task.Date = now.Format("20060102")
 	}
 
 	dateParse, err := time.Parse("20060102", task.Date)
 	if err != nil {
-		return task, http.StatusBadRequest, errors.New(`{"error":"incorrect date"}`)
+		return task, 400, errors.New(`{"error":"incorrect date"}`)
 	}
-
 	var dateNew string
 	if task.Repeat != "" {
-		dateNew, err = nextdate.NextDate(now, task.Date, task.Repeat)
+		dateNew, err = nextdate.NextDate(now, task.Date, task.Repeat) // Проверяем корректность поля repeat
 		if err != nil {
-			return task, http.StatusBadRequest, err
+			return task, 400, err
 		}
 	}
 
+	// Если поле date равен текущему дню, то date присваивается сегодняшний день.
 	if task.Date == now.Format("20060102") {
 		task.Date = now.Format("20060102")
 	}
 
+	// Если дата раньше сегодняшней, есть два варианта:
+	// 1. Если поле repeat пусто, то полю date присваиваетя сегодняшняя дата.
+	// 2. Иначе полю date присваиваетя следующая дата повторения, высчитанная ранее ф. NextDate.
 	if dateParse.Before(now) {
 		if task.Repeat == "" {
 			task.Date = now.Format("20060102")
@@ -61,5 +69,5 @@ func Check(req *http.Request) (task.Task, int, error) {
 		}
 	}
 
-	return task, http.StatusOK, nil
+	return task, 200, nil
 }
