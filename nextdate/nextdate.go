@@ -18,7 +18,7 @@ func parseTime(s string) (time.Time, error) {
 func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 	// Преобразование входных параметров во время
-	nowTime := now //Truncate(24 * time.Hour)
+	nowTime := now.Truncate(24 * time.Hour)
 	dateTime, err := parseTime(date)
 	if err != nil {
 		return "", fmt.Errorf("некорректная дата date: %w", err)
@@ -30,7 +30,8 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	}
 	firstsymbol := symbols[0]
 
-	if !strings.ContainsAny(firstsymbol, "dywm") {
+	if !strings.ContainsAny(firstsymbol, "dy") {
+		// Исправляем форматирование JSON-сообщения об ошибке
 		return "", fmt.Errorf(`{"error":"incorrect symbol %s"}`, firstsymbol)
 	}
 
@@ -43,7 +44,12 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 	case "d": // Через указанное число дней
 		if len(symbols) != 2 {
-			return "", fmt.Errorf("некорректный интервал дней в правиле повторения: %w", err)
+			// Проверяем на nil err перед использованием
+			if err != nil {
+				return "", fmt.Errorf("некорректный интервал дней в правиле повторения: %w", err)
+			} else {
+				return "", errors.New("некорректный интервал дней в правиле повторения")
+			}
 		}
 		secondsymbol := symbols[1]
 		return nextDayRepeat(dateTime, nowTime, secondsymbol)
@@ -51,6 +57,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	default: // Неподдерживаемые форматы
 		return "", errors.New("unsupported repeat format")
 	}
+
 }
 
 // nextYearlyDate переносит дату на один год вперед
