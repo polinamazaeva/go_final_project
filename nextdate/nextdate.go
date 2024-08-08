@@ -8,9 +8,12 @@ import (
 	"time"
 )
 
+// Константа для формата даты
+const DateFormat string = "20060102"
+
 // Функция для преобразования строки в формат времени
 func parseTime(s string) (time.Time, error) {
-	t, err := time.Parse("20060102", s)
+	t, err := time.Parse(DateFormat, s)
 	return t, err
 }
 
@@ -22,6 +25,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	dateTime, err := parseTime(date)
 	if err != nil {
 		return "", fmt.Errorf("некорректная дата date: %w", err)
+
 	}
 
 	symbols := strings.Split(repeat, " ")
@@ -31,10 +35,8 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	firstsymbol := symbols[0]
 
 	if !strings.ContainsAny(firstsymbol, "dy") {
-		// Исправляем форматирование JSON-сообщения об ошибке
 		return "", fmt.Errorf(`{"error":"incorrect symbol %s"}`, firstsymbol)
 	}
-
 	switch firstsymbol {
 	case "y": // Ежегодно
 		if len(symbols) != 1 {
@@ -71,7 +73,7 @@ func nextYearlyDate(dateTime time.Time, nowTime time.Time) (string, error) {
 		next = next.AddDate(1, 0, 0)
 	}
 
-	return next.Format("20060102"), nil
+	return next.Format(DateFormat), nil
 }
 
 // nextDayRepeat вычисляет следующую дату на основании повторения через указанное количество дней
@@ -93,5 +95,5 @@ func nextDayRepeat(dateTime time.Time, nowTime time.Time, daysInterval string) (
 		}
 		nextDate = nextDate.AddDate(0, 0, daysIntervalInt)
 	}
-	return nextDate.Format("20060102"), nil
+	return nextDate.Format(DateFormat), nil
 }

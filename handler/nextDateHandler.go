@@ -1,35 +1,44 @@
 package handler
 
 import (
-	"go_final_project/nextdate"
+	"log"
 	"net/http"
 	"time"
+
+	"go_final_project/nextdate"
 )
 
-// NextDateHandler вызывает функцию NextDate и возвращает её результат.
+// NextDateHandler обрабатывает HTTP-запросы для получения следующей даты на основе текущей даты, даты начала и повторяющегося интервала.
 func NextDateHandler(w http.ResponseWriter, req *http.Request) {
-	param := req.URL.Query()
-	now := param.Get("now")
-	day := param.Get("date")
-	repeat := param.Get("repeat")
+	// Извлекаем параметры запроса
+	queryParams := req.URL.Query()
+	now := queryParams.Get("now")       // Текущая дата и время
+	day := queryParams.Get("date")      // Дата начала
+	repeat := queryParams.Get("repeat") // Интервал повторения
 
-	if now == "" || day == "" || repeat == "" {
-		http.Error(w, `{"error":"missing parameters"}`, http.StatusBadRequest)
-		return
-	}
-
-	timeNow, err := time.Parse("20060102", now)
+	// Парсим текущую дату из строки
+	timeNow, err := time.Parse(nextdate.DateFormat, now)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Если произошла ошибка при парсинге, возвращаем ошибку 500 Internal Server Error
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Вызываем функцию NextDate для вычисления следующей даты
 	result, err := nextdate.NextDate(timeNow, day, repeat)
 	if err != nil {
+		// Если произошла ошибка при вычислении даты, возвращаем ошибку 400 Bad Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Отправляем результат клиенту
+	_, err = w.Write([]byte(result))
+	if err != nil {
+		// Логируем ошибку записи ответа
+		log.Printf("error writing next date: %v", err)
+	}
+	// Устанавливаем заголовок ответа и отправляем результат
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(result))
